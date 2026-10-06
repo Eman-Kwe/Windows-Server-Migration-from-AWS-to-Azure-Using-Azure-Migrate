@@ -1,4 +1,4 @@
-# Migrating a Windows Server from AWS to Azure with Azure Migrate
+# Windows Server Migration from AWS to Azure Using Azure Migrate
 
 This project moves a Windows Server running on AWS into Azure using Microsoft's Azure Migrate service. It covers finding the server, checking that it is ready, copying its disk to Azure, testing the copy, and switching over.
 
