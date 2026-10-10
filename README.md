@@ -5,7 +5,6 @@ This project moves a Windows Server running on AWS into Azure using Microsoft's 
 > **Status:** In progress. The plan, architecture, and steps are written. Screenshots and results get added as I build it.
 
 ### 🎬 Video Walkthrough
-*Loom link goes here after the build.*
 
 ---
 
