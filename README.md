@@ -68,7 +68,6 @@ aws-to-azure-migrate/
 
 ![Architecture diagram](images/architecture.png)
 
-*Editable source: [`architecture.drawio`](architecture.drawio). Open it at [app.diagrams.net](https://app.diagrams.net), then **File → Export as → PNG** and save it as `images/architecture.png`.*
 
 ### How it works
 
@@ -421,6 +420,9 @@ These are the ideas this project is built to show. I'll revise them after the bu
 ---
 
 **Author:** Manuel Yannick Armah
+
 **Project:** Migrating a Windows Server from AWS to Azure with Azure Migrate
+
 **Difficulty:** Intermediate
+
 **Time to Complete:** 4–6 hours
