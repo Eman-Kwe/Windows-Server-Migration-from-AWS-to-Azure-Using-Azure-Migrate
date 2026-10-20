@@ -418,8 +418,7 @@ These are the ideas this project is built to show. I'll revise them after the bu
 - Base lab guide: *Azure Migration Lab: AWS EC2 to Azure using Azure Migrate*
 
 ---
-
-**Author:** Manuel Yannick Armah
+Author:** Manuel Yannick Armah
 
 **Project:** Migrating a Windows Server from AWS to Azure with Azure Migrate
 
