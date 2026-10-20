@@ -34,13 +34,13 @@ resource "aws_vpc" "main" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_support   = true
   enable_dns_hostnames = true
-  tags                 = merge(var.tags, { Name = "vpc-migrate-manuel" })
+  tags                 = merge(var.tags, { Name = "vpc-migrate-kweku" })
 }
 
 # The door to the internet. Appliances need internet to reach Azure.
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
-  tags   = merge(var.tags, { Name = "igw-migrate-manuel" })
+  tags   = merge(var.tags, { Name = "igw-migrate-kweku" })
 }
 
 # One subnet. map_public_ip_on_launch gives each server a public IP so you can RDP in.
@@ -48,7 +48,7 @@ resource "aws_subnet" "main" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
-  tags                    = merge(var.tags, { Name = "snet-migrate-manuel" })
+  tags                    = merge(var.tags, { Name = "snet-migrate-kweku" })
 }
 
 # Route table: send all outside traffic (0.0.0.0/0) through the internet gateway.
@@ -58,7 +58,7 @@ resource "aws_route_table" "main" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.main.id
   }
-  tags = merge(var.tags, { Name = "rt-migrate-manuel" })
+  tags = merge(var.tags, { Name = "rt-migrate-kweku" })
 }
 
 resource "aws_route_table_association" "main" {
@@ -69,7 +69,7 @@ resource "aws_route_table_association" "main" {
 # ---------- Firewalls (security groups) ----------
 # Discovery appliance: RDP from your IP only.
 resource "aws_security_group" "discovery" {
-  name   = "migrate-discovery-sg-manuel"
+  name   = "migrate-discovery-sg-kweku"
   vpc_id = aws_vpc.main.id
   ingress {
     from_port   = 3389 # Remote Desktop
@@ -83,12 +83,12 @@ resource "aws_security_group" "discovery" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = merge(var.tags, { Name = "migrate-discovery-sg-manuel" })
+  tags = merge(var.tags, { Name = "migrate-discovery-sg-kweku" })
 }
 
 # Source server: RDP from you, WinRM (5985) from the discovery appliance only.
 resource "aws_security_group" "source" {
-  name   = "migrate-source-sg-manuel" # AWS rejects names starting with sg-
+  name   = "migrate-source-sg-kweku" # AWS rejects names starting with sg-
   vpc_id = aws_vpc.main.id
   ingress {
     from_port   = 3389
@@ -108,12 +108,12 @@ resource "aws_security_group" "source" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = merge(var.tags, { Name = "migrate-source-sg-manuel" })
+  tags = merge(var.tags, { Name = "migrate-source-sg-kweku" })
 }
 
 # Replication appliance: RDP from you, 443 and 9443 from the source server only.
 resource "aws_security_group" "replication" {
-  name   = "migrate-replication-sg-manuel"
+  name   = "migrate-replication-sg-kweku"
   vpc_id = aws_vpc.main.id
   ingress {
     from_port   = 3389
@@ -139,7 +139,7 @@ resource "aws_security_group" "replication" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  tags = merge(var.tags, { Name = "migrate-replication-sg-manuel" })
+  tags = merge(var.tags, { Name = "migrate-replication-sg-kweku" })
 }
 
 # ---------- Servers ----------
@@ -160,7 +160,7 @@ resource "aws_instance" "source" {
     volume_size = 30
     volume_type = "gp3"
   }
-  tags = merge(var.tags, { Name = "ec2-migrate-source-manuel" })
+  tags = merge(var.tags, { Name = "ec2-migrate-source-kweku" })
 }
 
 # Discovery appliance: finds and describes the source server for Azure.
@@ -178,7 +178,7 @@ resource "aws_instance" "discovery" {
     volume_size = 100 # Microsoft says about 80 GB
     volume_type = "gp3"
   }
-  tags = merge(var.tags, { Name = "ec2-migrate-discovery-manuel" })
+  tags = merge(var.tags, { Name = "ec2-migrate-discovery-kweku" })
 }
 
 # Replication appliance: receives disk changes and uploads them to Azure.
@@ -202,5 +202,5 @@ resource "aws_instance" "replication" {
     volume_size = var.replication_cache_gb
     volume_type = "gp3"
   }
-  tags = merge(var.tags, { Name = "ec2-migrate-replication-manuel" })
+  tags = merge(var.tags, { Name = "ec2-migrate-replication-kweku" })
 }

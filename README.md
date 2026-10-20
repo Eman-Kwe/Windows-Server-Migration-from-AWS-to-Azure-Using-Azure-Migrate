@@ -113,18 +113,18 @@ Both should return account details with no errors.
 
 | Resource | Value |
 |---|---|
-| AWS VPC | `vpc-migrate-manuel` (10.0.0.0/16) |
-| AWS subnet | `snet-migrate-manuel` (10.0.1.0/24) |
-| Source server | `ec2-migrate-source-manuel` (Windows Server 2022, t3.medium) |
-| Security group | `migrate-source-sg-manuel` (AWS blocks names starting with `sg-`) |
-| Azure staging resource group | `rg-migrate-staging-manuel` |
-| Azure target resource group | `rg-migrate-target-manuel` |
-| Azure VNet | `vnet-migrate-manuel` (10.1.0.0/16) |
+| AWS VPC | `vpc-migrate-kweku` (10.0.0.0/16) |
+| AWS subnet | `snet-migrate-kweku` (10.0.1.0/24) |
+| Source server | `ec2-migrate-source-kweku` (Windows Server 2022, t3.medium) |
+| Security group | `migrate-source-sg-kweku` (AWS blocks names starting with `sg-`) |
+| Azure staging resource group | `rg-migrate-staging-kweku` |
+| Azure target resource group | `rg-migrate-target-kweku` |
+| Azure VNet | `vnet-migrate-kweku` (10.1.0.0/16) |
 | Azure subnet | `snet-migrate` (10.1.1.0/24) |
-| Replication storage | `stmigratemanuel` |
-| Azure Migrate project | `migrate-project-manuel` |
+| Replication storage | `stmigratekweku` |
+| Azure Migrate project | `migrate-project-kweku` |
 | Regions | AWS `us-east-1`, Azure `East US` |
-| Tags | `project = azure-migrate-lab`, `owner = manuel`, `managed_by = terraform` |
+| Tags | `project = azure-migrate-lab`, `owner = kweku`, `managed_by = terraform` |
 
 The two networks use different address ranges (10.0.x.x and 10.1.x.x) so they never overlap if a VPN is added later.
 
@@ -226,8 +226,8 @@ terraform apply
 Terraform can't create an Azure Migrate project, so this one is done in the portal:
 
 1. Search **Azure Migrate** → **Create project**
-2. Resource group: `rg-migrate-staging-manuel`
-3. Name: `migrate-project-manuel`, Geography: United States
+2. Resource group: `rg-migrate-staging-kweku`
+3. Name: `migrate-project-kweku`, Geography: United States
 
 📸 **Screenshot `07-migrate-project.png`:** the project's overview page.
 
@@ -292,7 +292,7 @@ This is the agent that sends disk changes. Without it, the source server won't s
 
 1. **Migration and modernization → Replicate**
 2. Choose **Physical or other**, pick the replication appliance, and select the source server
-3. Target: `rg-migrate-target-manuel`, storage `stmigratemanuel`, VNet `vnet-migrate-manuel`, subnet `snet-migrate`
+3. Target: `rg-migrate-target-kweku`, storage `stmigratekweku`, VNet `vnet-migrate-kweku`, subnet `snet-migrate`
 4. Accept the recommended VM size, add the `project` tag, and click **Replicate**
 
 The first full copy takes roughly 30–60 minutes for a 30 GB disk. Wait for the status to change from **Initial replication** to **Protected**.
@@ -304,7 +304,7 @@ The first full copy takes roughly 30–60 minutes for a 30 GB disk. Wait for the
 
 ### Step 11: Run a Test Migration
 
-1. Open the replicating server and click **Test migration**, using `vnet-migrate-manuel`
+1. Open the replicating server and click **Test migration**, using `vnet-migrate-kweku`
 2. When the test VM appears, connect to it and confirm Windows boots and the hostname matches
 3. Click **Clean up test migration**
 
@@ -326,8 +326,8 @@ This is the dress rehearsal. Skipping it in a real migration is how outages happ
 
 ### Step 13: Verify the Migrated VM
 
-1. In `rg-migrate-target-manuel`, find the new VM
-2. Attach a public IP and the NSG `nsg-migrate-target-manuel` to its network interface
+1. In `rg-migrate-target-kweku`, find the new VM
+2. Attach a public IP and the NSG `nsg-migrate-target-kweku` to its network interface
 3. Connect with Remote Desktop using the original `Administrator` password
 4. Confirm the hostname and OS version match what you noted in Step 3
 
@@ -343,7 +343,7 @@ Order matters:
 
 1. **Stop replication** in Azure Migrate and wait for it to confirm
 2. `terraform destroy` in `aws-side`
-3. Delete `rg-migrate-target-manuel` (it holds the migrated VM, which Terraform doesn't track)
+3. Delete `rg-migrate-target-kweku` (it holds the migrated VM, which Terraform doesn't track)
 4. `terraform destroy` in `azure-side`
 5. Delete the Azure Migrate project and the vault Azure created, if they remain
 
@@ -387,7 +387,7 @@ Order matters:
 
 | Issue | Cause | Fix |
 |---|---|---|
-| `cannot begin with sg-` | AWS reserves that prefix for its own IDs | Name the group `migrate-source-sg-manuel` |
+| `cannot begin with sg-` | AWS reserves that prefix for its own IDs | Name the group `migrate-source-sg-kweku` |
 | `collecting instance settings: empty result` | AMI ID doesn't exist in your region | Look up the latest Windows Server 2022 AMI with `aws ec2 describe-images` and update `windows_ami` |
 | `azurerm_migrate_project` not supported | Terraform's Azure provider can't create Migrate projects | Create the project in the portal (Step 5) |
 | Discovery validation fails | WinRM blocked, or wrong password | Check the security group allows 5985 from the discovery appliance, and re-enter the credential |

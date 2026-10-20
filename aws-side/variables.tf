@@ -43,7 +43,7 @@ variable "tags" {
   type = map(string)
   default = {
     project    = "azure-migrate-lab"
-    owner      = "manuel"
+    owner      = "kweku"
     managed_by = "terraform"
   }
 }
