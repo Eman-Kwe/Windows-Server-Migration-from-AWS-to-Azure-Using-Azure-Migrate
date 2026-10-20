@@ -1,0 +1,5 @@
+# Copy this file to terraform.tfvars and fill in real values.
+# terraform.tfvars is git-ignored. This .example file is safe to commit.
+# Get your subscription ID with: az account show --query id -o tsv
+subscription_id = "00000000-0000-0000-0000-000000000000"
+my_ip_cidr      = "YOUR.PUBLIC.IP.HERE/32"
