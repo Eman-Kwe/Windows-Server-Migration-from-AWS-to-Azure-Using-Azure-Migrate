@@ -16,26 +16,30 @@ variable "admin_password" {
   sensitive = true
 }
 
-# Server sizes. Appliance sizes follow Microsoft's documented requirements.
+# Server sizes. EXPERIMENT: these are limited to what the AWS free plan allows.
+# Microsoft's documented appliance minimums are larger (discovery: 8 vCPU / 32 GB,
+# replication: 8 vCPU / 16 GB), so the appliances are under spec and may fail.
+# To build to spec, upgrade the AWS plan and use m5.2xlarge / c5.2xlarge.
 variable "source_instance_type" {
   type    = string
-  default = "t3.medium" # 2 vCPU, 4 GB: the server being migrated
+  default = "t3.small" # 2 vCPU, 2 GB: the server being migrated
 }
 
 variable "discovery_instance_type" {
   type    = string
-  default = "m5.2xlarge" # 8 vCPU, 32 GB: Microsoft's requirement for the discovery appliance
+  default = "m7i-flex.large" # 2 vCPU, 8 GB: largest the free plan allows
 }
 
 variable "replication_instance_type" {
   type    = string
-  default = "c5.2xlarge" # 8 vCPU, 16 GB: Microsoft's minimum for the replication appliance
+  default = "m7i-flex.large" # 2 vCPU, 8 GB: largest the free plan allows
 }
 
-# Extra disk the replication appliance uses to cache data. Microsoft's table says 300 GB.
+# Extra disk the replication appliance uses to cache data. The simplified appliance's
+# DRInstaller.ps1 aborts unless at least 600 GB is free, and Microsoft's docs list a 620 GB data disk.
 variable "replication_cache_gb" {
   type    = number
-  default = 300
+  default = 620
 }
 
 # Tags attached to every resource, so you can find and delete lab resources later.
