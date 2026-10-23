@@ -2,7 +2,7 @@
 
 This project moves a Windows Server running on AWS into Azure using Microsoft's Azure Migrate service. It covers finding the server, checking that it is ready, copying its disk to Azure, testing the copy, and switching over.
 
-> **Status:** In progress. Built and verified through the **test migration** (the Azure VM booted from the replicated AWS disk). Cutover, final verification and teardown results are added as they finish.
+> **Status:** Complete. The server was discovered, assessed, replicated, tested, cut over and verified in Azure, then both clouds were torn down. Final cost figures are noted in the Results table once the bills post.
 
 ### 🎬 Video Walkthrough
 
@@ -211,7 +211,10 @@ terraform apply
 
 Windows servers take a few extra minutes to finish starting after `apply` completes.
 
-📸 **Screenshot `02-aws-apply.png`:** the `Apply complete! Resources: X added` line.
+📸 **Screenshot `02-aws-vpc.png`:** the VPC `vpc-migrate-kweku` and its resource map: one subnet in `us-east-1a`, the route tables, and the internet gateway.
+
+![AWS VPC](images/02-aws-vpc.png)
+
 📸 **Screenshot `03-aws-ec2-console.png`:** the AWS EC2 console showing all three instances in the **Running** state.
 
 ![aws ec2 console](images/03-aws-ec2-console.png)
@@ -419,8 +422,18 @@ Order matters:
 4. `terraform destroy` in `azure-side`
 5. Delete the Azure Migrate project and the vault Azure created, if they remain
 
+Two things blocked the Azure delete, and both are worth knowing:
+- **A resource lock.** Azure Migrate puts a `CanNotDelete` lock on the cache storage account it creates. Remove the lock (`az lock delete`) before deleting the resource group.
+- **MFA.** With Entra security defaults on, the CLI refuses deletes until you sign in again with MFA (`az login --use-device-code`).
+
+
 📸 **Screenshot `21-aws-destroyed.png`:** `Destroy complete!` for AWS.
-📸 **Screenshot `22-azure-cleanup.png`:** the Azure resource groups list with the lab groups gone.
+
+![aws destroyed](images/21-aws-destroyed.png)
+
+`terraform destroy` removed all 15 AWS resources (three servers, the VPC, subnet, internet gateway, route table, security groups and rules). I then checked the account: 0 servers, 0 disks, 0 networks left.
+
+After the deletes, the subscription's resource groups were `NetworkWatcherRG` (created by Azure) and `rg-lab05-kweku` (a different lab). Both migrate groups were gone.
 
 ---
 
@@ -436,9 +449,56 @@ Order matters:
 | Test migration booted | ✅ Hostname EC2AMAZ-AJCH2IO, Windows Server 2022 build 20348.5761, Azure VM agent Ready |
 | Cutover completed | ✅ "Failover completed", job took about 2.5 minutes (chose **No** on shutting down the source so both copies stayed up for comparison) |
 | Hostname and OS match source | ✅ Final VM: hostname EC2AMAZ-AJCH2IO, Windows Server 2022 Datacenter 21H2, build 20348.5761, the same as the AWS source. Only the hardware differs (8 GB RAM on D2s_v4) |
-| Actual total cost (AWS + Azure) | pending, filled in after teardown |
+| Teardown | ✅ AWS: 0 servers, 0 disks, 0 networks left. Azure: both migrate resource groups deleted |
+| Actual total cost (AWS + Azure) | not yet posted (billing lags about a day). Running estimate while everything was up: about $1.70 per hour |
 
 **What I'd note in this section:** anything that broke, what fixed it, and how long each phase actually took compared to the estimates.
+
+---
+
+## Project Breakdown
+
+A plain-language summary of what this project was, why it matters, and what I would do differently.
+
+### What I did
+
+I moved a live Windows Server 2022 from AWS to Azure using Microsoft's migration service, Azure Migrate, and built both sides with Terraform.
+
+1. **Discover.** A helper server scanned the machine and reported its details to Azure.
+2. **Assess.** Azure judged the machine **Ready** with no blockers, and estimated about **$148.97 a month**.
+3. **Replicate.** A second helper copied the disk to Azure while the original kept running.
+4. **Test.** Azure built a temporary copy and booted it, without touching the real server.
+5. **Cut over.** Azure built the real VM. It came up with the **same hostname, edition and build number (20348.5761)** as the AWS original, which is the main proof the move worked.
+6. **Tear down.** Both clouds were removed in the right order so nothing kept billing.
+
+### Why it matters
+
+- Moving servers between clouds is routine work: after acquisitions, for cost, or for compliance.
+- It shows a process (discover, assess, test, cut over), not just clicking through a wizard.
+- Everything is code and documented, so someone else can rebuild it from this repo.
+- The cleanup was done and verified, which is often skipped.
+
+### An alternative approach
+
+- **Agentless migration** needs nothing installed on the source, but Azure Migrate does not offer it for AWS servers. It treats them as physical machines, which is why this project is agent-based.
+- **Rebuild instead of move.** For an app with a clean install process, redeploying on a fresh Azure VM (or containers) is often better long term, but it needs deep knowledge of the app.
+- **At larger scale,** group servers into waves and connect the clouds with a VPN so machines can talk during the move.
+
+### What I learned
+
+The hard part was not the wizard. It was finding the real cause behind generic errors, at the right layer each time.
+
+- **Vendor requirements are literal.** The replication appliance counts physical cores, so a size with "8 vCPUs" still failed.
+- **Check the firewall at every hop.** Three separate blocks looked like three different errors.
+- **Read the real log.** The portal said "internal error". The answer was in the Push Install Agent log and the job's task detail.
+- **BIOS or UEFI decides the Azure VM generation,** which limits the sizes that can boot.
+- **New accounts hit quotas in both clouds** (5 vCPUs on AWS, 4 on Azure).
+- **A test migration is where the surprises show up cheaply.**
+
+### Honest numbers
+
+- **Time:** about a full day, mostly troubleshooting.
+- **Cost:** about $1.70 an hour while everything was running (an estimate, not a bill). The assessment's $148.97 per month includes the Windows license because Hybrid Benefit was off.
 
 ---
 
