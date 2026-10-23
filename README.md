@@ -511,4 +511,4 @@ These are the ideas this project is built to show, updated with what actually ha
 
 **Difficulty:** Intermediate
 
-**Time to Complete:** about a full day (most of it troubleshooting)
+**Time to Complete:** 4-6 hours  (most of it troubleshooting)
