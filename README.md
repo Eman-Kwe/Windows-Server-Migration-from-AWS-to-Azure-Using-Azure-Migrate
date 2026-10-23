@@ -2,10 +2,10 @@
 
 I moved a live Windows Server 2022 from AWS to Azure using Microsoft's Azure Migrate. I discovered the server, assessed it, copied its disk, tested the copy, cut over, and then tore both clouds down. The migrated VM came up with the same hostname and the same Windows build as the original, and both sides are built with Terraform.
 
-<!-- When the Loom is recorded, replace this comment with:
+
 ### 🎬 Video Walkthrough
 [Watch the walkthrough](PASTE-LOOM-LINK-HERE)
--->
+
 
 ### Result at a glance
 
