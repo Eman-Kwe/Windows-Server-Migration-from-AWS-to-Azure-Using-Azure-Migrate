@@ -65,7 +65,6 @@ aws-to-azure-migrate/
 ├── README.md
 ├── architecture.drawio        # editable diagram (open in draw.io)
 ├── images/
-│   ├── architecture.png       # exported from draw.io
 │   └── ...                    # screenshots, named by step
 ├── aws-side/
 │   ├── main.tf
