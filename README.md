@@ -84,8 +84,7 @@ aws-to-azure-migrate/
 
 ## Architecture Diagram
 
-![Architecture diagram](images/architecture.png)
-
+<img width="1536" height="1024" alt="AWS to Azure Windows Migration Architecture" src="https://github.com/user-attachments/assets/0f22dcd4-98bc-4439-9b8b-fdda67b8e9b5" />
 
 ### How it works
 
