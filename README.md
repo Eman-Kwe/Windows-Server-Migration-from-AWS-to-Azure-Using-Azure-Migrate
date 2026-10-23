@@ -2,9 +2,11 @@
 
 This project moves a Windows Server running on AWS into Azure using Microsoft's Azure Migrate service. It covers finding the server, checking that it is ready, copying its disk to Azure, testing the copy, and switching over.
 
-> **Status:** In progress. The plan, architecture, and steps are written. Screenshots and results get added as I build it.
+> **Status:** In progress. Built and verified through the **test migration** (the Azure VM booted from the replicated AWS disk). Cutover, final verification and teardown results are added as they finish.
 
 ### 🎬 Video Walkthrough
+
+*Loom link coming after recording.*
 
 ---
 
@@ -143,6 +145,22 @@ While reading the base lab against Microsoft's documentation for AWS migrations,
 
 ---
 
+## What I Actually Built
+
+The plan above changed once it met real quotas and requirements. This is what I ran.
+
+| Item | Planned | What I ran | Why |
+|---|---|---|---|
+| AWS account | free plan | **new paid account** | The free plan could not launch instances big enough for Microsoft's appliance minimums |
+| Discovery appliance | m5.2xlarge | m5.2xlarge | 8 vCPU / 32 GB |
+| Replication appliance | c5.2xlarge | **c5.4xlarge** | The installer counts **physical cores**. 8 vCPUs is only 4 cores (hyperthreading), so it needs 16 vCPUs |
+| Replication cache disk | 300 GB | **620 GB** | The installer aborts without about 600 GB free |
+| AWS vCPU limit | 5 (new account) | raised to **32** | 8 + 16 + 2 vCPUs does not fit in 5 |
+| Azure VM size | assessment pick | **D2s_v4** | The source boots BIOS, so Azure builds a Generation 1 VM. v6 and v7 sizes only boot Generation 2 |
+| Azure vCPU quota | | 4 in East US | The wizard's default size (M8-2ms) would exceed it |
+
+---
+
 ## Cost Estimate
 
 The base lab estimates **about $5–8** if everything is built and destroyed within one day. Moving the appliances to AWS changes the mix, so I'll update this with my actual bill after the build.
@@ -167,6 +185,9 @@ mkdir aws-side azure-side images
 Add `terraform.tfvars`, `*.tfstate`, and `.terraform/` to `.gitignore` before writing any code. The tfvars files hold passwords.
 
 📸 **Screenshot `01-folder-structure.png`:** your terminal or file explorer showing the `aws-side` and `azure-side` folders.
+
+![folder structure](images/01-folder-structure.png)
+
 
 ---
 
@@ -193,6 +214,9 @@ Windows servers take a few extra minutes to finish starting after `apply` comple
 📸 **Screenshot `02-aws-apply.png`:** the `Apply complete! Resources: X added` line.
 📸 **Screenshot `03-aws-ec2-console.png`:** the AWS EC2 console showing all three instances in the **Running** state.
 
+![aws ec2 console](images/03-aws-ec2-console.png)
+
+
 ---
 
 ### Step 3: Confirm the Source Server Works
@@ -202,6 +226,9 @@ Connect with Remote Desktop to the source server's public IP (`terraform output 
 This is the "before" picture. Note the hostname and OS version so you can compare later.
 
 📸 **Screenshot `04-source-server-desktop.png`:** the Windows Server desktop, ideally with **System → About** open showing the hostname and OS version.
+
+![source server desktop](images/04-source-server-desktop.png)
+
 
 ---
 
@@ -217,7 +244,13 @@ terraform apply
 ```
 
 📸 **Screenshot `05-azure-apply.png`:** the `Apply complete!` line.
+
+![azure apply](images/05-azure-apply.png)
+
 📸 **Screenshot `06-azure-resource-groups.png`:** the Azure portal showing both resource groups and what's inside them.
+
+![azure resource groups](images/06-azure-resource-groups.png)
+
 
 ---
 
@@ -231,6 +264,9 @@ Terraform can't create an Azure Migrate project, so this one is done in the port
 
 📸 **Screenshot `07-migrate-project.png`:** the project's overview page.
 
+![migrate project](images/07-migrate-project.png)
+
+
 ---
 
 ### Step 6: Set Up the Discovery Appliance
@@ -242,8 +278,14 @@ Terraform can't create an Azure Migrate project, so this one is done in the port
 5. Add the source server's **private IP** as the discovery source (both are in the same VPC), then click **Start discovery**.
 
 📸 **Screenshot `08-appliance-registered.png`:** the configuration manager showing "Successfully registered."
+
+![appliance registered](images/08-appliance-registered.png)
+
 📸 **Screenshot `09-discovery-validated.png`:** the discovery source showing "Validation successful."
 📸 **Screenshot `10-discovered-servers.png`:** Azure Migrate's discovered servers list with the source server in it.
+
+![discovered servers](images/10-discovered-servers.png)
+
 
 ---
 
@@ -260,31 +302,45 @@ What to look for:
 Skip **Create wave**. That's for moving hundreds of servers in batches.
 
 📸 **Screenshot `11-assessment-readiness.png`:** the readiness result.
+
+![assessment readiness](images/11-assessment-readiness.png)
+
 📸 **Screenshot `12-assessment-size-cost.png`:** the recommended size and cost estimate.
+
+![assessment size cost](images/12-assessment-size-cost.png)
+
 
 ---
 
 ### Step 8: Set Up the Replication Appliance
 
 1. In the Migrate project, go to **Migration and modernization → Discover**, choose **Physical or other**, target region East US, and click **Create resources**. Azure creates the vault it needs here.
-2. Download the replication appliance installer and its registration key.
-3. Remote Desktop into the replication appliance EC2 instance, run the installer as Administrator, and register it with the key.
+2. There is no download button in the portal. The PowerShell installer comes from the documentation link (`aka.ms/V2ARcmApplianceCreationPowershellZip`). Download it on the replication server, extract it, and run `DRInstaller.ps1` from the **inner** folder as Administrator.
+3. In the configuration manager: let the prerequisite checks pass (including the core count), choose **NAT IP** with the appliance's *private IP* (not FQDN, because EC2 Windows hostnames do not resolve between instances), register with the key using the device-code login, tick "I do not have vCenter", and add the source server under **Physical server details**.
 
 Microsoft says the replication appliance can't be the same machine as the discovery appliance, which is why there are two.
 
 📸 **Screenshot `13-replication-appliance-registered.png`:** the replication appliance showing as connected.
 
+![replication appliance registered](images/13-replication-appliance-registered.png)
+
+
 ---
 
 ### Step 9: Install the Mobility Service on the Source Server
 
-1. On the replication appliance, generate the Mobility service configuration file.
-2. Remote Desktop into the source server, copy over the agent installer and the configuration file, and install it.
-3. Register the agent with the replication appliance.
+With the current appliance there is nothing to install by hand. When you click **Replicate**, the replication appliance **pushes** the Mobility service to the source server over remote WMI and SMB.
 
-This is the agent that sends disk changes. Without it, the source server won't show up when you click **Replicate**.
+That needs two things in place first:
+- AWS: the source security group allows the replication appliance on ports 135, 445, 5985-5986 and 49152-65535 (a Terraform rule scoped to the appliance's security group only)
+- Windows on the source: the WMI, DCOM and File and Printer Sharing firewall rules enabled, with the network profile set to Private
+
+The agent is the part that sends disk changes. The job step "Installing Mobility Service and enabling replication" took about 19 minutes.
 
 📸 **Screenshot `14-mobility-agent-installed.png`:** the install completing on the source server.
+
+![mobility agent installed](images/14-mobility-agent-installed.png)
+
 
 ---
 
@@ -293,12 +349,18 @@ This is the agent that sends disk changes. Without it, the source server won't s
 1. **Migration and modernization → Replicate**
 2. Choose **Physical or other**, pick the replication appliance, and select the source server
 3. Target: `rg-migrate-target-kweku`, storage `stmigratekweku`, VNet `vnet-migrate-kweku`, subnet `snet-migrate`
-4. Accept the recommended VM size, add the `project` tag, and click **Replicate**
+4. Leave the cache storage on auto-create and Hybrid Benefit unticked, then click **Replicate**. The size and test network can only be changed after the first recovery point exists (status **Protected**), so edit them then
 
 The first full copy takes roughly 30–60 minutes for a 30 GB disk. Wait for the status to change from **Initial replication** to **Protected**.
 
 📸 **Screenshot `15-replication-in-progress.png`:** the replicating machines list showing progress.
-📸 **Screenshot `16-replication-protected.png`:** the status showing **Protected**.
+
+![replication in progress](images/15-replication-in-progress.png)
+
+📸 **Screenshot `16-replication-synchronized.png`:** the item healthy with the test migration time and a recent "Last synchronized" time (replication keeps running after the test).
+
+![replication synchronized](images/16-replication-synchronized.png)
+
 
 ---
 
@@ -308,9 +370,14 @@ The first full copy takes roughly 30–60 minutes for a 30 GB disk. Wait for the
 2. When the test VM appears, connect to it and confirm Windows boots and the hostname matches
 3. Click **Clean up test migration**
 
+If the test fails, read the reason from the job's task detail. Mine failed because the size I chose could not boot a Generation 1 VM (see Troubleshooting).
+
 This is the dress rehearsal. Skipping it in a real migration is how outages happen.
 
-📸 **Screenshot `17-test-vm-booted.png`:** the test VM's desktop or the VM page showing it running.
+📸 **Screenshot `17-test-migration-status.png`:** the item showing the test migration time and a healthy status.
+
+![test migration status](images/17-test-migration-status.png)
+
 📸 **Screenshot `18-test-cleanup.png`:** the cleanup confirmation.
 
 ---
@@ -318,9 +385,12 @@ This is the dress rehearsal. Skipping it in a real migration is how outages happ
 ### Step 12: Cut Over
 
 1. Open the replicating server and click **Migrate**
-2. For a lab, choose **No** on shutting down the source. In production you'd shut it down so both copies aren't in use at once.
+2. For a lab, choose **No** on shutting down the source, so you can compare both servers. In production you'd choose **Yes**: it shuts the source down, copies the last changes (no data loss), and avoids two live copies.
 
-📸 **Screenshot `19-cutover-complete.png`:** the migration job showing completed.
+📸 **Screenshot `19-cutover-complete.png`:** the item showing **Failover completed**.
+
+![cutover complete](images/19-cutover-complete.png)
+
 
 ---
 
@@ -334,6 +404,8 @@ This is the dress rehearsal. Skipping it in a real migration is how outages happ
 The IP address will be different from AWS. That's expected when changing clouds.
 
 📸 **Screenshot `20-migrated-vm-desktop.png`:** the migrated VM's **System → About** page, side by side with Step 3's screenshot if possible. This is the most important screenshot in the project.
+
+![migrated VM About page](images/20-migrated-vm-desktop.png)
 
 ---
 
@@ -354,19 +426,17 @@ Order matters:
 
 ## Results
 
-*To be filled in after the build.*
-
 | Check | Result |
 |---|---|
-| Source server discovered | ☐ |
-| Assessment readiness | ☐ |
-| Recommended Azure VM size | ☐ |
-| Estimated monthly cost in Azure | ☐ |
-| Time for initial replication | ☐ |
-| Test migration booted | ☐ |
-| Cutover completed | ☐ |
-| Hostname and OS match source | ☐ |
-| Actual total cost (AWS + Azure) | ☐ |
+| Source server discovered | ✅ EC2AMAZ-AJCH2IO, Windows Server 2022, 29 GB disk, BIOS boot |
+| Assessment readiness | ✅ Ready, no migration blockers (Windows support status: Extended) |
+| Recommended Azure VM size | Standard_D2ls_v5 |
+| Estimated monthly cost in Azure | **$148.97** (compute 131.69, storage 2.40, security 14.88), with Hybrid Benefit off |
+| Time for initial replication | about 12 minutes of copying, then about 20 minutes to the first recovery point (Protected at 6:48 PM EDT) |
+| Test migration booted | ✅ Hostname EC2AMAZ-AJCH2IO, Windows Server 2022 build 20348.5761, Azure VM agent Ready |
+| Cutover completed | ✅ "Failover completed", job took about 2.5 minutes (chose **No** on shutting down the source so both copies stayed up for comparison) |
+| Hostname and OS match source | ✅ Final VM: hostname EC2AMAZ-AJCH2IO, Windows Server 2022 Datacenter 21H2, build 20348.5761, the same as the AWS source. Only the hardware differs (8 GB RAM on D2s_v4) |
+| Actual total cost (AWS + Azure) | pending, filled in after teardown |
 
 **What I'd note in this section:** anything that broke, what fixed it, and how long each phase actually took compared to the estimates.
 
@@ -380,6 +450,8 @@ Order matters:
 - **Passwords stay out of Git.** `terraform.tfvars` and state files are in `.gitignore`. State files can contain sensitive values.
 - **Test before cutover.** A test migration confirms the server boots in Azure before anything is committed.
 - **Separate staging and target resource groups.** Migration tooling can be deleted without touching the migrated VM.
+- **Extra source-server rules are scoped to one security group.** The replication appliance's group can reach the source on the migration ports. Nothing is opened to the internet.
+- **Screenshots are redacted.** Subscription IDs, account emails, project keys and public IPs are blurred.
 
 ---
 
@@ -396,18 +468,33 @@ Order matters:
 | Can't RDP to the migrated VM | No public IP or no NSG on its network interface | Attach both (Step 13) |
 | Migrated VM has a different IP | Azure assigns a new address | Expected. Update DNS if anything points to the old IP |
 | `vault is not empty` on destroy | Replication items still registered | Stop replication and remove items from the vault, then retry |
+| New AWS account blocks launches | Default limit is 5 Standard vCPUs (`VcpuLimitExceeded`) | Request a quota increase in Service Quotas (approved at 32) |
+| Replication appliance: "Memory and CPU validation failed ... only 4 CPU cores" | `c5.2xlarge` has 8 vCPUs but only 4 physical cores | Resize to `c5.4xlarge` (16 vCPUs, 8 cores) |
+| Configuration manager link gives `DNS_PROBE_FINISHED_NXDOMAIN` from another server | Windows computer names do not resolve between EC2 instances | Use the private IP (NAT IP option) |
+| Physical server status **Error** in the appliance | The source security group only allowed port 5985 from the discovery appliance | Add rules from the replication appliance's group: 135, 445, 5985-5986, 49152-65535 |
+| Job fails at "Installing Mobility Service" (codes 539 and 320000) | The push stopped at the remote WMI step, so the agent was never installed | Enable the WMI-In and DCOM-In rules, set the network profile to Private, retry. Log: `C:\Program Files\Microsoft Azure Push Install Agent\PushInstallService.log` |
+| Test migration fails: `VM size 'Standard_D2ls_v7' cannot boot Hypervisor Generation '1'` | A BIOS source becomes a Generation 1 VM | Use a size that supports Gen 1 (D2s_v4) |
+| Target size shows `Standard_M8-2ms` | Wizard default, and above a 4-vCPU Azure quota | Edit to a 2-vCPU size once the status is Protected |
+| Portal shows "In error / Action pending" after a failed test | Health 161011: no successful test migration yet | Clean up the failed test, fix the size, run the test again |
+
+![Replication appliance core check failure](images/troubleshoot-1-replication-cpu-check-failed.png)
 
 ---
 
 ## Key Takeaways
 
-These are the ideas this project is built to show. I'll revise them after the build based on what actually happened.
+These are the ideas this project is built to show, updated with what actually happened.
 
 - **A migration is a process, not a button.** Discover, assess, replicate, test, cut over. Each step catches a different kind of problem.
 - **Assessment is where you find blockers cheaply.** Fixing a "Not ready" result before replication saves hours.
 - **Network paths decide whether it works.** The source server has to reach the replication appliance. Getting the firewall rules and placement right matters more than any setting in the portal.
 - **Always test first.** A test migration costs minutes. A failed cutover can cost a day of downtime.
 - **Clean up in order.** Two clouds and several manual resources mean `terraform destroy` alone won't catch everything.
+- **Vendor requirements are literal.** The replication appliance counts physical cores, so a size with "8 vCPUs" still failed.
+- **Check the firewall at every hop.** Three separate blocks (discovery to source, appliance to source, source to appliance) each showed up as a different error.
+- **Read the real log.** The portal said "internal error". The answer was in the Push Install Agent log and the job's task detail.
+- **BIOS or UEFI decides the Azure VM generation,** and the generation limits which sizes can boot.
+- **Quotas bite on new accounts** in both clouds (5 vCPUs on AWS, 4 on Azure).
 
 ---
 
@@ -424,4 +511,4 @@ These are the ideas this project is built to show. I'll revise them after the bu
 
 **Difficulty:** Intermediate
 
-**Time to Complete:** 4–6 hours
+**Time to Complete:** about a full day (most of it troubleshooting)

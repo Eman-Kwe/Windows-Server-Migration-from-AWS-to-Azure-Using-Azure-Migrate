@@ -91,18 +91,8 @@ resource "aws_security_group" "discovery" {
 resource "aws_security_group" "source" {
   name   = "migrate-source-sg-kweku" # AWS rejects names starting with sg-
   vpc_id = aws_vpc.main.id
-  ingress {
-    from_port   = 3389
-    to_port     = 3389
-    protocol    = "tcp"
-    cidr_blocks = [var.my_ip_cidr]
-  }
-  ingress {
-    from_port       = 5985 # WinRM, used by discovery
-    to_port         = 5985
-    protocol        = "tcp"
-    security_groups = [aws_security_group.discovery.id]
-  }
+  # All ingress rules for this group are separate rule resources (below) so they do not conflict
+  # with each other. The replication group references this group, so inline rules would create a cycle.
   egress {
     from_port   = 0
     to_port     = 0
@@ -141,6 +131,45 @@ resource "aws_security_group" "replication" {
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = merge(var.tags, { Name = "migrate-replication-sg-kweku" })
+}
+
+# Source server ingress. Separate rule resources avoid a circular dependency with the replication group.
+resource "aws_security_group_rule" "source_rdp" {
+  type              = "ingress"
+  description       = "Remote Desktop from my IP only"
+  from_port         = 3389
+  to_port           = 3389
+  protocol          = "tcp"
+  security_group_id = aws_security_group.source.id
+  cidr_blocks       = [var.my_ip_cidr]
+}
+
+resource "aws_security_group_rule" "source_winrm_from_discovery" {
+  type                     = "ingress"
+  description              = "WinRM, used by discovery"
+  from_port                = 5985
+  to_port                  = 5985
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.source.id
+  source_security_group_id = aws_security_group.discovery.id
+}
+
+# The replication appliance must reach the source server to validate its login and push-install the
+# Mobility service (WMI/RPC, SMB, WinRM).
+resource "aws_security_group_rule" "source_from_replication" {
+  for_each = {
+    rpc_endpoint = [135, 135]     # WMI / RPC endpoint mapper
+    smb          = [445, 445]     # file copy for the agent installer
+    winrm        = [5985, 5986]   # remote PowerShell
+    rpc_dynamic  = [49152, 65535] # dynamic RPC ports used by WMI
+  }
+  type                     = "ingress"
+  description              = "Replication appliance to source server: ${each.key}"
+  from_port                = each.value[0]
+  to_port                  = each.value[1]
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.source.id
+  source_security_group_id = aws_security_group.replication.id
 }
 
 # ---------- Servers ----------

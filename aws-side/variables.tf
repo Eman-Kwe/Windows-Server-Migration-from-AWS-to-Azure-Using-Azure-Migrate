@@ -16,23 +16,20 @@ variable "admin_password" {
   sensitive = true
 }
 
-# Server sizes. EXPERIMENT: these are limited to what the AWS free plan allows.
-# Microsoft's documented appliance minimums are larger (discovery: 8 vCPU / 32 GB,
-# replication: 8 vCPU / 16 GB), so the appliances are under spec and may fail.
-# To build to spec, upgrade the AWS plan and use m5.2xlarge / c5.2xlarge.
+# Server sizes. Appliance sizes follow Microsoft's documented requirements.
 variable "source_instance_type" {
   type    = string
-  default = "t3.small" # 2 vCPU, 2 GB: the server being migrated
+  default = "t3.medium" # 2 vCPU, 4 GB: the server being migrated
 }
 
 variable "discovery_instance_type" {
   type    = string
-  default = "m7i-flex.large" # 2 vCPU, 8 GB: largest the free plan allows
+  default = "m5.2xlarge" # 8 vCPU, 32 GB: Microsoft's requirement for the discovery appliance
 }
 
 variable "replication_instance_type" {
   type    = string
-  default = "m7i-flex.large" # 2 vCPU, 8 GB: largest the free plan allows
+  default = "c5.4xlarge" # 16 vCPU = 8 physical cores, 32 GB: the appliance check counts cores, not vCPUs
 }
 
 # Extra disk the replication appliance uses to cache data. The simplified appliance's
