@@ -14,7 +14,6 @@ A recorded walkthrough of this project is coming soon.
 | **What I moved** | A Windows Server 2022 machine (29 GB disk) from AWS to an Azure VM |
 | **Azure's assessment** | Ready for Azure, no blockers, about $148.97 a month |
 | **Proof it worked** | Same hostname and same Windows build (20348.5761) on the Azure VM as on the AWS server |
-| **Time and cost** | About a day, most of it troubleshooting. Projected cost of the whole lab: about $32 |
 | **Cleanup** | Verified: nothing left running in AWS, and the migration resource groups are deleted in Azure |
 | **Tools** | Terraform, AWS, Azure Migrate, PowerShell |
 
@@ -108,7 +107,8 @@ aws-to-azure-migrate/
 - A Remote Desktop client (Microsoft Remote Desktop on Mac, `mstsc` on Windows)
 - Room in your vCPU quotas (see below)
 - About a day. Replication itself is short, but expect to spend time troubleshooting.
-
+- **Time and cost:** About a day, most of it troubleshooting. Projected cost of the whole lab: about $32 
+  
 **Check your quotas first.** This is the most common thing that stops a migration project:
 - A new AWS account allows only **5 Standard vCPUs**. This build needs about 26 at once, so I requested an increase to 32 (Service Quotas, approved quickly).
 - My Azure subscription allowed **4 vCPUs** in East US, which is enough for one small VM but not for large default sizes.
