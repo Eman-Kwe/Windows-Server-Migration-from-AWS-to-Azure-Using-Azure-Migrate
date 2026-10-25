@@ -187,29 +187,6 @@ The plan above changed once it met real quotas and requirements. This is what I 
 
 ---
 
-## Cost
-
-**Projected cost of the whole lab: about $32.** This is a projection from AWS's published Windows hourly rates and how long each server ran, not a bill. Neither cloud's billing had posted when I finished, and I'm labelling it that way on purpose.
-
-| Item | About how long | Rate (per hour) | Projected cost |
-|---|---|---|---|
-| Source server (`t3.medium`) | 17 hours | $0.06 | $1.00 |
-| Discovery appliance (`m5.2xlarge`) | 15 hours | $0.752 | $11.60 |
-| Replication appliance, `c5.2xlarge` first | 10.5 hours | $0.708 | $7.40 |
-| Replication appliance, then `c5.4xlarge` | 6 hours | $1.416 | $8.80 |
-| Disks (850 GB total, about a day) | 24 hours | gp3 storage | $2.30 |
-| Public IPs and data out | | | $0.30 |
-| **AWS total** | | | **about $31** |
-| Azure: test VM plus the final VM (`D2s_v4`, Windows) | about 5.5 hours | about $0.19 | about $1 |
-| **Everything** | | | **about $32** |
-
-Why it was higher than the $5–8 the base lab suggests: the helper servers have to be large (the replication appliance alone is a 16 vCPU machine), and they ran for about a day, partly because of troubleshooting. I stopped the servers overnight, which cut the bill, but the disks kept billing.
-
-**After cutover**, Azure's assessment estimated the migrated VM at about **$148.97 a month**. That includes the Windows license, because I left Azure Hybrid Benefit off. That figure is a monthly estimate for running it, not what this lab cost.
-
-**Destroy everything as soon as you finish.** Two clouds billing at once adds up quickly.
-
----
 
 ## Project Steps
 
