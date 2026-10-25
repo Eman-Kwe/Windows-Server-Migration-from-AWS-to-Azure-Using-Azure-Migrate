@@ -4,7 +4,7 @@ I moved a live Windows Server 2022 from AWS to Azure using Microsoft's Azure Mig
 
 
 ### 🎬 Video Walkthrough
-[Watch the project walkthrough](PASTE-LOOM-LINK-HERE)
+A recorded walkthrough of this project is coming soon.
 
 
 ### Result at a glance
@@ -17,11 +17,6 @@ I moved a live Windows Server 2022 from AWS to Azure using Microsoft's Azure Mig
 | **Time and cost** | About a day, most of it troubleshooting. Projected cost of the whole lab: about $32 |
 | **Cleanup** | Verified: nothing left running in AWS, and the migration resource groups are deleted in Azure |
 | **Tools** | Terraform, AWS, Azure Migrate, PowerShell |
-
-<!-- When the Loom is recorded, replace this comment with:
-### 🎬 Video Walkthrough
-[Watch the walkthrough](PASTE-LOOM-LINK-HERE)
--->
 
 ---
 
