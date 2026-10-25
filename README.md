@@ -63,7 +63,6 @@ Companies move servers between clouds all the time: to cut costs, to meet compli
 ```
 aws-to-azure-migrate/
 ├── README.md
-├── architecture.drawio        # editable diagram (open in draw.io)
 ├── images/
 │   └── ...                    # screenshots, named by step
 ├── aws-side/
