@@ -4,7 +4,7 @@ I moved a live Windows Server 2022 from AWS to Azure using Microsoft's Azure Mig
 
 
 ### 🎬 Video Walkthrough
-[Loom walkthrough](https://www.loom.com/share/a63edb663e12476bba165f17e86754c2)
+[Loom walkthrough](https://www.loom.com/share/394446ee524742788739b371e0a69dd2)
 
 
 ### Result at a glance
